@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>感觉处理量表 · 自评问卷 (管理员版)</title>
+    <!-- Chart.js 雷达图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 12px 40px;
+        }
+        .app-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            display: flex;
+            gap: 20px;
+            position: relative;
+        }
+        /* 管理员编辑面板 (默认隐藏) */
+        .admin-panel {
+            width: 380px;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 20px 16px;
+            height: fit-content;
+            max-height: 85vh;
+            overflow-y: auto;
+            display: none;
+            flex-shrink: 0;
+            border: 2px solid #fbbf24;
+        }
+        .admin-panel.show {
+            display: block;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #fbbf24;
+        }
+        .admin-header h3 {
+            color: #b45309;
+            font-size: 1.3rem;
+        }
+        .close-admin {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .admin-table th {
+            text-align: left;
+            padding: 8px 4px;
+            background: #fffbeb;
+            position: sticky;
+            top: 0;
+        }
+        .admin-table td {
+            padding: 6px 4px;
+            border-bottom: 1px solid #fde68a;
+        }
+        .admin-table input, .admin-table select {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #fcd34d;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+        .save-indicator {
+            font-size: 0.8rem;
+            color: #10b981;
+            margin-top: 10px;
+            text-align: right;
+        }
+        /* 主问卷区域 */
+        .main-questionnaire {
+            flex: 1;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            padding: 28px 28px 36px;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .subhead {
+            color: #475569;
+            margin-bottom: 20px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 18px;
+            font-weight: 400;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .version-trigger {
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            color: #64748b;
+            transition: color 0.2s;
+        }
+        .version-trigger:hover {
+            color: #0f172a;
+        }
+        .lang-switch {
+            display: flex;
+            gap: 8px;
+        }
+        .lang-btn {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .lang-btn.active {
+            background: #0f172a;
+            border-color: #0f172a;
+            color: white;
+        }
+        .age-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0 10px;
+        }
+        select {
+            padding: 10px 18px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .progress-bar {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 20px;
+            margin: 20px 0 18px;
+        }
+        .progress-fill {
+            background: #3b82f6;
+            width: 0%;
+            height: 8px;
+            border-radius: 20px;
+            transition: width 0.2s;
+        }
+        .question-item {
+            background: #fafcff;
+            border: 1px solid #eef2f6;
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+        }
+        .q-text {
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 1.05rem;
+            color: #0f172a;
+            line-height: 1.4;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+        .option-label input {
+            accent-color: #3b82f6;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .btn {
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .btn-primary {
+            background: #0f172a;
+            border-color: #0f172a;
+            color: white;
+            box-shadow: 0 8px 16px rgba(15,23,42,0.1);
+        }
+        .btn-primary:hover {
+            background: #1e293b;
+        }
+        .btn-outline:hover {
+            background: #f8fafc;
+        }
+        .result-panel {
+            margin-top: 32px;
+            background: #f8fafc;
+            border-radius: 28px;
+            padding: 28px;
+            border: 1px solid #e2e8f0;
+        }
+        .quadrant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            margin: 24px 0;
+        }
+        .quadrant-card {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            border: 1px solid #eef2f6;
+        }
+        .quadrant-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: #1e293b;
+        }
+        .score-badge {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1;
+        }
+        .classification {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 40px;
+            background: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .radar-container {
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        .footer-note {
+            margin-top: 28px;
+            color: #64748b;
+            font-size: 0.9rem;
+            text-align: center;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 24px;
+        }
+        details {
+            margin-top: 24px;
+        }
+        summary {
+            font-weight: 700;
+            cursor: pointer;
+            color: #334155;
+        }
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+        .detail-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        /* 密码弹窗 */
+        .password-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .password-box {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 32px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .password-box input {
+            padding: 12px 18px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <!-- 管理员编辑面板 (默认隐藏) -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-header">
+            <h3>🔐 题库管理</h3>
+            <button class="close-admin" id="closeAdminBtn">&times;</button>
+        </div>
+        <div style="margin-bottom:12px;">
+            <button class="btn btn-outline" id="exportAdminBtn" style="padding:6px 12px; font-size:0.9rem;">📤 导出题库</button>
+            <button class="btn btn-outline" id="importAdminBtn" style="padding:6px 12px; font-size:0.9rem;">📥 导入</button>
+            <input type="file" id="importFileInput" accept=".json" style="display:none;">
+            <button class="btn btn-outline" id="resetAdminBtn" style="padding:6px 12px; font-size:0.9rem;">🔄 重置默认</button>
+        </div>
+        <table class="admin-table" id="adminTable">
+            <thead><tr><th>#</th><th>英文</th><th>中文</th><th>象限</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+        </table>
+        <div class="save-indicator" id="saveIndicator">✅ 已自动保存</div>
+    </div>
+
+    <!-- 主问卷区域 -->
+    <div class="main-questionnaire">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>🧠 感觉处理量表</h1>
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="zh">中文</button>
+                <button class="lang-btn" data-lang="en">English</button>
+            </div>
+        </div>
+        <div class="subhead">
+            <span id="subtitle">青少年/成人版 · 自评问卷</span>
+            <span class="version-trigger" id="versionTrigger">Adolescent/Adult Sensory Profile</span>
+        </div>
+
+        <!-- 年龄选择 -->
+        <div class="age-selector">
+            <label style="font-weight: 700;">📅 <span data-i18n="ageLabel">年龄组</span>：</label>
+            <select id="ageGroupSelect">
+                <option value="11-17">11–17 岁</option>
+                <option value="18-64" selected>18–64 岁</option>
+                <option value="65+">65 岁及以上</option>
+            </select>
+            <span style="color:#64748b;" data-i18n="ageHint">（常模对比依据）</span>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+
+        <!-- 问卷区域 -->
+        <div id="questionsContainer"></div>
+
+        <!-- 操作按钮 -->
+        <div class="actions">
+            <button class="btn btn-outline" id="resetBtn" type="button">↻ <span data-i18n="reset">重置</span></button>
+            <button class="btn btn-primary" id="submitBtn" type="button">📊 <span data-i18n="submit">查看结果</span></button>
+        </div>
+
+        <!-- 结果面板 -->
+        <div id="resultPanel" class="result-panel" style="display: none;"></div>
+
+        <div class="footer-note">
+            Catana Brown, Ph.D., OTR, FAOTA & Winnie Dunn, Ph.D., OTR, FAOTA<br>
+            <span data-i18n="normNote">常模基于无残疾人群，结果仅供专业参考，不作为临床诊断。</span>
+        </div>
+    </div>
+</div>
+
+<!-- 密码弹窗 (默认隐藏) -->
+<div id="passwordOverlay" class="password-overlay" style="display: none;">
+    <div class="password-box">
+        <h3>🔐 管理员验证</h3>
+        <input type="password" id="passwordInput" placeholder="输入密码" autocomplete="off">
+        <div>
+            <button class="btn btn-primary" id="confirmPasswordBtn">确认</button>
+            <button class="btn btn-outline" id="cancelPasswordBtn">取消</button>
+        </div>
+        <p style="margin-top:16px; color:#64748b; font-size:0.8rem;">默认密码: 1234</p>
+    </div>
+</div>
+
+<script>
+    (function(){
+        "use strict";
+
+        // ---------- 默认题库 (60题) ----------
+        const DEFAULT_QUESTIONS = [
+            { id:1, textEn:"I leave or move to another section when I smell a strong odor in a store (e.g., bath products, candles, perfumes).", textZh:"当我在商店里闻到强烈气味（如沐浴产品、蜡烛、香水）时，我会离开或走到另一区域。", quad:"SA" },
+            { id:2, textEn:"I add spice to my food.", textZh:"我会在食物里加香料。", quad:"SS" },
+            { id:3, textEn:"I don't smell things that other people say they smell.", textZh:"别人说闻到的气味我闻不到。", quad:"LR" },
+            { id:4, textEn:"I enjoy being close to people who wear perfume or cologne.", textZh:"我喜欢靠近喷香水或古龙水的人。", quad:"SS" },
+            { id:5, textEn:"I only eat familiar foods.", textZh:"我只吃熟悉的食物。", quad:"SA" },
+            { id:6, textEn:"Many foods taste bland to me (food tastes plain or does not have a lot of flavor).", textZh:"很多食物对我来说味道寡淡（食物没味道或味道不重）。", quad:"LR" },
+            { id:7, textEn:"I don't like strong tasting mints or candies (e.g., hot/cinnamon or sour candy).", textZh:"我不喜欢味道强烈的薄荷糖或糖果（例如辣的/肉桂味或酸味糖果）。", quad:"SA" },
+            { id:8, textEn:"I go over to smell fresh flowers when I see them.", textZh:"我看到鲜花时会凑过去闻。", quad:"SS" },
+            { id:9, textEn:"I'm afraid of heights.", textZh:"我恐高。", quad:"SA" },
+            { id:10, textEn:"I enjoy how it feels to move about (e.g., dancing, running).", textZh:"我喜欢活动身体的感觉（例如跳舞、跑步）。", quad:"SS" },
+            { id:11, textEn:"I avoid elevators and/or escalators because I dislike the movement.", textZh:"我避免乘电梯或自动扶梯，因为我不喜欢那种移动感。", quad:"SA" },
+            { id:12, textEn:"I trip or bump into things.", textZh:"我会被绊倒或撞到东西。", quad:"LR" },
+            { id:13, textEn:"I dislike the movement of riding in a car.", textZh:"我不喜欢坐车时的移动感。", quad:"SA" },
+            { id:14, textEn:"I choose to engage in physical activities.", textZh:"我选择参加体育活动。", quad:"SS" },
+            { id:15, textEn:"I am unsure of footing when walking on stairs (e.g., I trip, lose balance, need to hold the rail).", textZh:"走楼梯时我脚步不稳（例如会绊倒、失去平衡或需要扶扶手）。", quad:"LR" },
+            { id:16, textEn:"I become dizzy easily (e.g., after bending over, getting up too fast).", textZh:"我容易头晕（例如弯腰后、站起来太快时）。", quad:"LR" },
+            { id:17, textEn:"I like to go to places that have bright lights and that are colorful.", textZh:"我喜欢去灯光明亮、色彩鲜艳的地方。", quad:"SS" },
+            { id:18, textEn:"I would like to have a job that involves handling paper or books.", textZh:"我想从事需要处理纸张或书籍的工作。", quad:"SA" },
+            { id:19, textEn:"I like to wear bright colored clothing.", textZh:"我喜欢穿颜色鲜艳的衣服。", quad:"SS" },
+            { id:20, textEn:"I become frustrated when trying to find something in a crowded drawer.", textZh:"在塞满的抽屉里找东西会让我感到烦躁。", quad:"SE" },
+            { id:21, textEn:"I am attracted to bright lights and colorful objects.", textZh:"明亮的灯光和色彩鲜艳的物体会吸引我。", quad:"SS" },
+            { id:22, textEn:"I have trouble finding an item when it is among many other items.", textZh:"当物品混在很多其他东西里时，我很难找到它。", quad:"LR" },
+            { id:23, textEn:"I don't like to look at a lot of different colors.", textZh:"我不喜欢看很多不同的颜色。", quad:"SA" },
+            { id:24, textEn:"I notice when there are a lot of different things to look at.", textZh:"当有很多东西可看时，我会注意到。", quad:"SE" },
+            { id:25, textEn:"I avoid getting my hands messy.", textZh:"我避免把手弄脏。", quad:"SA" },
+            { id:26, textEn:"I like to wear clothing that is loose and not tight against my skin.", textZh:"我喜欢穿宽松、不紧贴皮肤的衣服。", quad:"SA" },
+            { id:27, textEn:"I don't notice when my face or hands are dirty.", textZh:"我注意不到自己的脸或手脏了。", quad:"LR" },
+            { id:28, textEn:"I dislike the feeling of new clothes that haven't been washed.", textZh:"我不喜欢没洗过的新衣服的触感。", quad:"SE" },
+            { id:29, textEn:"I touch people or objects to the point of irritating others.", textZh:"我会触摸别人或物品到令他人不悦的程度。", quad:"SS" },
+            { id:30, textEn:"I get annoyed when someone touches me unexpectedly.", textZh:"有人意外碰到我时我会烦躁。", quad:"SE" },
+            { id:31, textEn:"I prefer to touch rather than be touched.", textZh:"我更喜欢去触碰而非被触碰。", quad:"SA" },
+            { id:32, textEn:"I like to fidget with something (e.g., pen, coins) during meetings.", textZh:"开会时我喜欢摆弄东西（如笔、硬币）。", quad:"SS" },
+            { id:33, textEn:"I stay seated for long periods of time.", textZh:"我会长时间坐着不动。", quad:"LR" },
+            { id:34, textEn:"I like to be busy.", textZh:"我喜欢忙碌。", quad:"SS" },
+            { id:35, textEn:"I find it difficult to sit still.", textZh:"我很难安静地坐着。", quad:"SS" },
+            { id:36, textEn:"I move slowly to avoid spilling or breaking things.", textZh:"我行动缓慢以避免打翻或打破东西。", quad:"SA" },
+            { id:37, textEn:"I choose leisure activities that are quiet and calm.", textZh:"我会选择安静、平和的休闲活动。", quad:"SA" },
+            { id:38, textEn:"I work on two or more tasks at the same time.", textZh:"我同时做两件或更多任务。", quad:"SS" },
+            { id:39, textEn:"It takes me more time than other people to wake up in the morning.", textZh:"我早上需要比别人更长的时间才能清醒。", quad:"LR" },
+            { id:40, textEn:"I do things on the spur of the moment (without making a plan ahead of time).", textZh:"我会一时冲动做事（即不事先计划）。", quad:"SS" },
+            { id:41, textEn:"I find time to get away from my busy life and spend time by myself.", textZh:"我会找时间从繁忙的生活中抽离，独自待着。", quad:"SA" },
+            { id:42, textEn:"I seem slower than others when trying to follow an activity or task.", textZh:"在跟随活动或任务时，我似乎比别人慢。", quad:"LR" },
+            { id:43, textEn:"I don't get jokes as quickly as others.", textZh:"我理解笑话不如别人快。", quad:"LR" },
+            { id:44, textEn:"I stay away from crowds.", textZh:"我远离人群。", quad:"SA" },
+            { id:45, textEn:"I find activities to perform in front of others (e.g., music, sports, acting, public speaking).", textZh:"我会找在他人面前表演的活动（如音乐、运动、表演、演讲）。", quad:"SS" },
+            { id:46, textEn:"I find it hard to concentrate for the whole time when sitting in a long class or a meeting.", textZh:"在冗长的课堂或会议中，我很难全程集中注意力。", quad:"LR" },
+            { id:47, textEn:"I avoid situations where unexpected things might happen (e.g., going to unfamiliar places, being around strangers).", textZh:"我避免可能发生意外情况的情境（如去不熟悉的地方或和陌生人相处）。", quad:"SA" },
+            { id:48, textEn:"I hum or whistle or sing to myself when I am working.", textZh:"我工作时会自己哼歌、吹口哨或唱歌。", quad:"SS" },
+            { id:49, textEn:"I am sensitive to the tone of voice that people use.", textZh:"我对别人说话的语气很敏感。", quad:"SE" },
+            { id:50, textEn:"I like to be in a room with a lot of decorations.", textZh:"我喜欢待在装饰很多的房间里。", quad:"SS" },
+            { id:51, textEn:"I don't notice when my clothes are twisted or bunched up.", textZh:"我注意不到衣服拧在一起或皱成一团。", quad:"LR" },
+            { id:52, textEn:"I don't like to go to places that have strong odors.", textZh:"我不喜欢去气味浓烈的地方。", quad:"SA" },
+            { id:53, textEn:"I like to spend time in a room that is dark.", textZh:"我喜欢待在光线昏暗的房间里。", quad:"SA" },
+            { id:54, textEn:"I like to eat foods that have a strong flavor (e.g., spicy, sour, salty).", textZh:"我喜欢吃味道浓烈的食物（如辣、酸、咸）。", quad:"SS" },
+            { id:55, textEn:"I don't notice changes in temperature when others do.", textZh:"别人感觉到温度变化时我却没注意到。", quad:"LR" },
+            { id:56, textEn:"I avoid going outside when it is very sunny.", textZh:"阳光很强时我避免外出。", quad:"SA" },
+            { id:57, textEn:"I like to listen to loud music.", textZh:"我喜欢听吵闹的音乐。", quad:"SS" },
+            { id:58, textEn:"I am unaware of being touched by others.", textZh:"我察觉不到被别人触碰。", quad:"LR" },
+            { id:59, textEn:"I like to wear clothing that is tight and close to my skin.", textZh:"我喜欢穿紧身、贴肤的衣服。", quad:"SS" },
+            { id:60, textEn:"I find it difficult to work with background noise.", textZh:"有背景噪音时我很难工作。", quad:"SE" }
+        ];
+
+        // ---------- 全局变量 ----------
+        let questions = JSON.parse(localStorage.getItem('sensory_admin_questions')) || JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+        let currentLang = 'zh';
+        let radarChart = null;
+        const ADMIN_PASSWORD = '1234';
+        let clickCount = 0;
+        let clickTimer = null;
+
+        // 双语词典 (与之前相同)
+        const i18n = {
+            zh: {
+                subtitle: "青少年/成人感觉处理量表 · 自评问卷",
+                ageLabel: "年龄组", ageHint: "（常模对比依据）", reset: "重置", submit: "查看结果",
+                resultTitle: "评估结果", rawData: "原始分数与作答明细 (治疗师用)",
+                normNote: "常模基于无残疾人群，结果仅供专业参考，不作为临床诊断。",
+                quadrants: { LR:"感觉迟钝 (Low Registration)", SS:"感觉寻求 (Sensation Seeking)", SE:"感觉敏感 (Sensory Sensitivity)", SA:"感觉回避 (Sensation Avoiding)" },
+                classifications: ["远低于多数人","低于多数人","与多数人相似","高于多数人","远高于多数人"],
+                options: ["几乎从不 (5%)","很少 (25%)","偶尔 (50%)","经常 (75%)","几乎总是 (95%)"],
+                missingWarning: "您还有未作答的题目，请完成所有条目后再提交。",
+                interpretationPrefix: "您的四象限感觉处理模式如下："
+            },
+            en: {
+                subtitle: "Adolescent/Adult Sensory Profile · Self Questionnaire",
+                ageLabel: "Age Group", ageHint: "(for norm comparison)", reset: "Reset", submit: "View Results",
+                resultTitle: "Results", rawData: "Raw Scores & Response Details (for therapist)",
+                normNote: "Norms based on individuals without disabilities. For professional reference only, not a clinical diagnosis.",
+                quadrants: { LR:"Low Registration", SS:"Sensation Seeking", SE:"Sensory Sensitivity", SA:"Sensation Avoiding" },
+                classifications: ["Much Less Than Most","Less Than Most","Similar to Most","More Than Most","Much More Than Most"],
+                options: ["Almost Never (5%)","Seldom (25%)","Occasionally (50%)","Frequently (75%)","Almost Always (95%)"],
+                missingWarning: "Some items are unanswered. Please complete all questions before submitting.",
+                interpretationPrefix: "Your quadrant sensory processing patterns:"
+            }
+        };
+
+        const norms = {
+            "11-17": { LR:[15,18,19,26,27,40,41,51,52,75], SS:[15,27,28,41,42,58,59,65,66,75], SE:[15,19,20,25,26,40,41,48,49,75], SA:[15,18,19,25,26,40,41,48,49,75] },
+            "18-64": { LR:[15,18,19,23,24,35,36,44,45,75], SS:[15,35,36,42,43,56,57,62,63,75], SE:[15,18,19,25,26,41,42,48,49,75], SA:[15,19,20,26,27,41,42,49,50,75] },
+            "65+":   { LR:[15,19,20,26,27,40,41,51,52,75], SS:[15,28,29,39,40,52,53,63,64,75], SE:[15,18,19,25,26,41,42,48,49,75], SA:[15,18,19,25,26,42,43,49,50,75] }
+        };
+
+        // ---------- 渲染主问卷 ----------
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            let html = '';
+            questions.forEach(q => {
+                const text = currentLang === 'zh' ? q.textZh : q.textEn;
+                html += `<div class="question-item"><div class="q-text">${q.id}. ${text}</div><div class="options">`;
+                for (let i=0; i<5; i++) {
+                    html += `<label class="option-label"><input type="radio" name="q${q.id}" value="${i+1}"><span>${i18n[currentLang].options[i]}</span></label>`;
+                }
+                html += `</div></div>`;
+            });
+            container.innerHTML = html;
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.addEventListener('change', updateProgress));
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = questions.length;
+            const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+            document.getElementById('progressFill').style.width = (answered/total*100)+'%';
+        }
+
+        // 语言切换
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang===lang));
+            document.querySelectorAll('[data-i18n]').forEach(el => { if(i18n[lang][el.dataset.i18n]) el.textContent = i18n[lang][el.dataset.i18n]; });
+            document.getElementById('subtitle').textContent = i18n[lang].subtitle;
+            renderQuestions();
+            if(document.getElementById('resultPanel').style.display !== 'none') showResults();
+        }
+
+        // 计分与展示
+        function computeScores() {
+            const scores = { LR:0, SS:0, SE:0, SA:0 };
+            const details = [];
+            questions.forEach(q => {
+                const radio = document.querySelector(`input[name="q${q.id}"]:checked`);
+                const val = radio ? parseInt(radio.value) : 0;
+                scores[q.quad] += val;
+                details.push({ id:q.id, quad:q.quad, answer:val, text: currentLang==='zh'?q.textZh:q.textEn });
+            });
+            return { scores, details };
+        }
+
+        function getClassification(quad, rawScore, ageGroup) {
+            const norm = norms[ageGroup][quad];
+            for(let i=0; i<5; i++) if(rawScore >= norm[i*2] && rawScore <= norm[i*2+1]) return i;
+            return 2;
+        }
+
+        function showResults() {
+            const age = document.getElementById('ageGroupSelect').value;
+            const { scores, details } = computeScores();
+            if(details.filter(d=>d.answer>0).length < questions.length) { alert(i18n[currentLang].missingWarning); return; }
+            const panel = document.getElementById('resultPanel');
+            panel.style.display = 'block';
+            const quads = ['LR','SS','SE','SA'];
+            const classIdx = quads.map(q => getClassification(q, scores[q], age));
+            let html = `<h2>📋 ${i18n[currentLang].resultTitle} (${age})</h2><div class="quadrant-grid">`;
+            quads.forEach((q,i) => { html += `<div class="quadrant-card"><div class="quadrant-name">${i18n[currentLang].quadrants[q]}</div><div class="score-badge">${scores[q]}</div><span class="classification">${i18n[currentLang].classifications[classIdx[i]]}</span></div>`; });
+            html += `</div><div class="radar-container"><canvas id="radarChart"></canvas></div>`;
+            html += `<p><strong>${i18n[currentLang].interpretationPrefix}</strong><br>${quads.map((q,i)=>`${i18n[currentLang].quadrants[q]}: ${scores[q]} (${i18n[currentLang].classifications[classIdx[i]]})`).join('； ')}</p>`;
+            html += `<details><summary>📋 ${i18n[currentLang].rawData}</summary><table class="detail-table"><tr><th>#</th><th>题目</th><th>象限</th><th>得分</th></tr>`;
+            details.forEach(d => { html += `<tr><td>${d.id}</td><td>${d.text.substring(0,30)}…</td><td>${d.quad}</td><td>${d.answer}</td></tr>`; });
+            html += `</table><p><strong>总分：</strong> LR=${scores.LR}, SS=${scores.SS}, SE=${scores.SE}, SA=${scores.SA}</p></details>`;
+            panel.innerHTML = html;
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if(radarChart) radarChart.destroy();
+            radarChart = new Chart(ctx, { type:'radar', data:{ labels: quads.map(q=>i18n[currentLang].quadrants[q]), datasets:[{ data: quads.map(q=>scores[q]), backgroundColor:'rgba(59,130,246,0.2)', borderColor:'#3b82f6' }] }, options:{ scales:{ r:{ min:15, max:75 } } } });
+        }
+
+        function resetForm() {
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            document.getElementById('resultPanel').style.display = 'none';
+            updateProgress();
+        }
+
+        // ---------- 管理员面板逻辑 ----------
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            let html = '';
+            questions.forEach(q => {
+                html += `<tr>
+                    <td>${q.id}</td>
+                    <td><input type="text" value="${q.textEn.replace(/"/g,'&quot;')}" data-id="${q.id}" data-field="textEn"></td>
+                    <td><input type="text" value="${q.textZh.replace(/"/g,'&quot;')}" data-id="${q.id}" data-field="textZh"></td>
+                    <td><select data-id="${q.id}" data-field="quad">
+                        <option value="LR" ${q.quad==='LR'?'selected':''}>LR</option>
+                        <option value="SS" ${q.quad==='SS'?'selected':''}>SS</option>
+                        <option value="SE" ${q.quad==='SE'?'selected':''}>SE</option>
+                        <option value="SA" ${q.quad==='SA'?'selected':''}>SA</option>
+                    </select></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            tbody.querySelectorAll('input, select').forEach(el => el.addEventListener('change', (e) => {
+                const id = parseInt(e.target.dataset.id);
+                const field = e.target.dataset.field;
+                const value = e.target.value;
+                const q = questions.find(q => q.id === id);
+                if(q) q[field] = value;
+                localStorage.setItem('sensory_admin_questions', JSON.stringify(questions));
+                document.getElementById('saveIndicator').textContent = '✅ 已自动保存';
+                renderQuestions();  // 实时更新主问卷
+                if(document.getElementById('resultPanel').style.display !== 'none') showResults();
+            }));
+        }
+
+        function showAdminPanel() {
+            document.getElementById('adminPanel').classList.add('show');
+            renderAdminTable();
+        }
+
+        function hideAdminPanel() {
+            document.getElementById('adminPanel').classList.remove('show');
+        }
+
+        // 密码验证
+        function showPasswordPrompt() {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').focus();
+        }
+
+        // 点击触发器 (5次)
+        function setupTrigger() {
+            const trigger = document.getElementById('versionTrigger');
+            trigger.addEventListener('click', () => {
+                clickCount++;
+                clearTimeout(clickTimer);
+                clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
+                if(clickCount >= 5) {
+                    clickCount = 0;
+                    if(!document.getElementById('adminPanel').classList.contains('show')) showPasswordPrompt();
+                }
+            });
+        }
+
+        // 导出/导入/重置
+        function bindAdminControls() {
+            document.getElementById('closeAdminBtn').addEventListener('click', hideAdminPanel);
+            document.getElementById('exportAdminBtn').addEventListener('click', ()=>{
+                const blob = new Blob([JSON.stringify(questions,null,2)], {type:'application/json'});
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sensory_questions_backup.json'; a.click();
+            });
+            document.getElementById('importAdminBtn').addEventListener('click', ()=> document.getElementById('importFileInput').click());
+            document.getElementById('importFileInput').addEventListener('change', (e)=>{
+                const file = e.target.files[0]; if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        if(Array.isArray(imported) && imported.length===60) {
+                            questions = imported;
+                            localStorage.setItem('sensory_admin_questions', JSON.stringify(questions));
+                            renderAdminTable();
+                            renderQuestions();
+                            if(document.getElementById('resultPanel').style.display !== 'none') showResults();
+                        } else alert('格式错误：需要60题');
+                    } catch(ex) { alert('无效JSON'); }
+                };
+                reader.readAsText(file);
+            });
+            document.getElementById('resetAdminBtn').addEventListener('click', ()=>{
+                if(confirm('重置为默认题库？所有修改将丢失。')) {
+                    questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+                    localStorage.setItem('sensory_admin_questions', JSON.stringify(questions));
+                    renderAdminTable();
+                    renderQuestions();
+                    if(document.getElementById('resultPanel').style.display !== 'none') showResults();
+                }
+            });
+        }
+
+        function bindPasswordModal() {
+            document.getElementById('confirmPasswordBtn').addEventListener('click', ()=>{
+                if(document.getElementById('passwordInput').value === ADMIN_PASSWORD) {
+                    document.getElementById('passwordOverlay').style.display = 'none';
+                    showAdminPanel();
+                } else alert('密码错误');
+            });
+            document.getElementById('cancelPasswordBtn').addEventListener('click', ()=> document.getElementById('passwordOverlay').style.display = 'none');
+        }
+
+        // 初始化
+        window.onload = () => {
+            renderQuestions();
+            setLanguage('zh');
+            document.querySelectorAll('.lang-btn').forEach(b => b.addEventListener('click', (e)=> setLanguage(e.target.dataset.lang)));
+            document.getElementById('submitBtn').addEventListener('click', showResults);
+            document.getElementById('resetBtn').addEventListener('click', resetForm);
+            setupTrigger();
+            bindAdminControls();
+            bindPasswordModal();
+        };
+    })();
+</script>
+</body>
+</html>
