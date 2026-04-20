@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -497,7 +498,7 @@
         let clickCount = 0;
         let clickTimer = null;
 
-        // 双语词典 (与之前相同)
+        // 双语词典
         const i18n = {
             zh: {
                 subtitle: "青少年/成人感觉处理量表 · 自评问卷",
@@ -563,17 +564,30 @@
         }
 
         // 计分与展示
+        function computeScores() {
+            const scores = { LR:0, SS:0, SE:0, SA:0 };
+            const details = [];
+            questions.forEach(q => {
+                const radio = document.querySelector(`input[name="q${q.id}"]:checked`);
+                const val = radio ? parseInt(radio.value) : 0;
+                scores[q.quad] += val;
+                details.push({ id:q.id, quad:q.quad, answer:val, text: currentLang==='zh'?q.textZh:q.textEn });
+            });
+            return { scores, details };
+        }
+
+        // ★★★ 修正后的等级判断函数（处理超出常模范围的分数） ★★★
         function getClassification(quad, rawScore, ageGroup) {
             const norm = norms[ageGroup][quad];
-            // 低于最低阈值 → 返回0（远低于）
+            // 低于最低阈值 -> 远低于
             if (rawScore < norm[0]) return 0;
-            // 高于最高阈值 → 返回4（远高于）
+            // 高于最高阈值 -> 远高于
             if (rawScore > norm[9]) return 4;
             // 正常区间匹配
             for (let i = 0; i < 5; i++) {
-            if (rawScore >= norm[i*2] && rawScore <= norm[i*2+1]) return i;
-        }
-    return 2;
+                if (rawScore >= norm[i*2] && rawScore <= norm[i*2+1]) return i;
+            }
+            return 2; // 默认返回“相似”（理论上不会走到这里）
         }
 
         function showResults() {
@@ -629,7 +643,7 @@
                 if(q) q[field] = value;
                 localStorage.setItem('sensory_admin_questions', JSON.stringify(questions));
                 document.getElementById('saveIndicator').textContent = '✅ 已自动保存';
-                renderQuestions();  // 实时更新主问卷
+                renderQuestions();
                 if(document.getElementById('resultPanel').style.display !== 'none') showResults();
             }));
         }
@@ -643,14 +657,12 @@
             document.getElementById('adminPanel').classList.remove('show');
         }
 
-        // 密码验证
         function showPasswordPrompt() {
             document.getElementById('passwordOverlay').style.display = 'flex';
             document.getElementById('passwordInput').value = '';
             document.getElementById('passwordInput').focus();
         }
 
-        // 点击触发器 (5次)
         function setupTrigger() {
             const trigger = document.getElementById('versionTrigger');
             trigger.addEventListener('click', () => {
@@ -664,7 +676,6 @@
             });
         }
 
-        // 导出/导入/重置
         function bindAdminControls() {
             document.getElementById('closeAdminBtn').addEventListener('click', hideAdminPanel);
             document.getElementById('exportAdminBtn').addEventListener('click', ()=>{
