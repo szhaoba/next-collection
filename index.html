@@ -563,18 +563,17 @@
         }
 
         // 计分与展示
-function getClassification(quad, rawScore, ageGroup) {
-    const norm = norms[ageGroup][quad];
-    // 低于最低阈值 → 返回0（远低于）
-    if (rawScore < norm[0]) return 0;
-    // 高于最高阈值 → 返回4（远高于）
-    if (rawScore > norm[9]) return 4;
-    // 正常区间匹配
-    for (let i = 0; i < 5; i++) {
-        if (rawScore >= norm[i*2] && rawScore <= norm[i*2+1]) return i;
-    }
+        function getClassification(quad, rawScore, ageGroup) {
+            const norm = norms[ageGroup][quad];
+            // 低于最低阈值 → 返回0（远低于）
+            if (rawScore < norm[0]) return 0;
+            // 高于最高阈值 → 返回4（远高于）
+            if (rawScore > norm[9]) return 4;
+            // 正常区间匹配
+            for (let i = 0; i < 5; i++) {
+            if (rawScore >= norm[i*2] && rawScore <= norm[i*2+1]) return i;
+        }
     return 2;
-}
         }
 
         function showResults() {
