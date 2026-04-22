@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>桃花源·感官之旅</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-weight: 300;
+        }
+        body {
+            background: #f3efed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 12px 8px 30px;
+        }
+        .app-container {
+            max-width: 600px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            padding: 24px 18px 30px;
+            border: 1px solid #e4d8d4;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 350;
+            color: #2b2b2b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+        .medical-note {
+            background: #f3efed;
+            color: #6e4e4e;
+            padding: 12px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            margin: 10px 0 12px;
+            border-left: 4px solid #bc9a8e;
+            font-weight: 350;
+            line-height: 1.4;
+        }
+        .subhead {
+            color: #5a5a5a;
+            border-left: 4px solid #c8afa3;
+            padding-left: 16px;
+            margin: 16px 0 18px;
+            font-style: italic;
+            font-size: 1rem;
+            font-weight: 300;
+        }
+        .age-selector {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0 10px;
+        }
+        .age-selector label {
+            font-weight: 400;
+            color: #2b2b2b;
+        }
+        select {
+            padding: 12px 18px;
+            border-radius: 40px;
+            border: 1.5px solid #d6c8c3;
+            background: white;
+            font-size: 1rem;
+            font-weight: 350;
+            color: #2b2b2b;
+            outline: none;
+        }
+        .progress-bar {
+            background: #e4d8d4;
+            height: 6px;
+            border-radius: 20px;
+            margin: 20px 0 15px;
+        }
+        .progress-fill {
+            background: #bc9a8e;
+            width: 0%;
+            height: 6px;
+            border-radius: 20px;
+            transition: width 0.2s;
+        }
+        .question-item {
+            background: #faf7f6;
+            border: 1.5px solid #e4d8d4;
+            border-radius: 24px;
+            padding: 20px 16px;
+            margin-bottom: 18px;
+        }
+        .q-text {
+            font-weight: 400;
+            margin-bottom: 18px;
+            color: #2b2b2b;
+            line-height: 1.5;
+            font-size: 1.05rem;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px 20px;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #4a4a4a;
+            padding: 4px 0;
+            font-weight: 350;
+        }
+        .option-label input {
+            accent-color: #bc9a8e;
+            width: 22px;
+            height: 22px;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .btn {
+            padding: 16px 28px;
+            border-radius: 60px;
+            font-weight: 400;
+            font-size: 1.2rem;
+            border: none;
+            background: white;
+            color: #2b2b2b;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+            border: 1.5px solid #d6c8c3;
+            flex: 1;
+            text-align: center;
+            min-width: 120px;
+        }
+        .btn-primary {
+            background: #2b2b2b;
+            border-color: #2b2b2b;
+            color: white;
+            box-shadow: 0 6px 12px rgba(188, 154, 142, 0.15);
+        }
+        .btn-primary:active {
+            background: #3d3d3d;
+        }
+        .result-panel {
+            margin-top: 30px;
+            background: #faf7f6;
+            border-radius: 28px;
+            padding: 22px 18px;
+            border: 1.5px solid #e4d8d4;
+        }
+        .quadrant-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin: 20px 0;
+        }
+        .quadrant-card {
+            background: white;
+            padding: 18px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+            border: 1px solid #e4d8d4;
+        }
+        .quadrant-name {
+            font-weight: 400;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: #2b2b2b;
+        }
+        .score-badge {
+            font-size: 2rem;
+            font-weight: 350;
+            color: #8b6f66;
+        }
+        .classification {
+            font-size: 0.9rem;
+            color: #5a5a5a;
+            margin-top: 4px;
+            font-weight: 300;
+        }
+        .radar-container {
+            max-width: 100%;
+            margin: 20px auto;
+            padding: 0 8px;
+        }
+        .identity-card {
+            margin-top: 25px;
+            background: #f3efed;
+            border-radius: 28px;
+            padding: 24px 18px;
+            border: 2px solid #bc9a8e;
+            text-align: center;
+        }
+        .identity-hint {
+            color: #6e4e4e;
+            font-weight: 400;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
+            font-size: 1rem;
+        }
+        .identity-title {
+            font-size: 2.4rem;
+            font-weight: 350;
+            color: #2b2b2b;
+            margin-bottom: 14px;
+            line-height: 1.2;
+        }
+        .identity-desc {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #4a4a4a;
+            max-width: 100%;
+            margin: 0 auto;
+            font-weight: 350;
+        }
+        .footer-note {
+            margin-top: 25px;
+            color: #8a7a74;
+            font-size: 0.9rem;
+            text-align: center;
+            font-weight: 300;
+        }
+        @media (max-width: 400px) {
+            .app-container { padding: 18px 12px; }
+            h1 { font-size: 1.7rem; }
+            .q-text { font-size: 1rem; }
+            .option-label { font-size: 0.95rem; }
+            .btn { padding: 14px 18px; font-size: 1.1rem; }
+            .identity-title { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>🌸 桃花源记 · 感官之旅</h1>
+    <div class="medical-note">
+        ⚕️ 该量表依据 Adult Sensory Profile - Assessment 调整，结果仅供个人探索参考，不作为医疗临床诊断依据。
+    </div>
+    <div class="subhead">请根据您在桃花源中的感受，选择最符合您反应的选项</div>
+
+    <div class="age-selector">
+        <label>📅 年龄组：</label>
+        <select id="ageGroupSelect">
+            <option value="11-17">11–17 岁</option>
+            <option value="18-64" selected>18–64 岁</option>
+            <option value="65+">65 岁及以上</option>
+        </select>
+        <span style="color:#8a7a74; font-size:0.9rem; font-weight:300;">（常模对比依据）</span>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="actions">
+        <button class="btn" id="resetBtn">↻ 重置</button>
+        <button class="btn btn-primary" id="submitBtn">📊 查看结果</button>
+    </div>
+
+    <div id="resultPanel" class="result-panel" style="display: none;"></div>
+    <div class="footer-note">—— 缘溪行，忘路之远近 ——</div>
+</div>
+
+<script>
+(function(){
+    const questions = [
+        { id:1, text:"初入桃花源，溪边捣衣的皂角味、村民晾晒的草药味扑鼻而来，我会下意识屏息，快步走到气味较淡的麦田边。", quad:"SA" },
+        { id:2, text:"穿过桃林时，我被凸起的树根绊了一下，肩膀又蹭到了低矮的枝丫。", quad:"LR" },
+        { id:3, text:"同行者说桃花林里飘着蜂蜜似的甜香，我用力吸气，却什么也闻不出来。", quad:"LR" },
+        { id:4, text:"走进热闹的墟市，我一眼就注意到角落里老妪卖的蓝印花布，和树上挂的祈福木牌。", quad:"SE" },
+        { id:5, text:"从幽暗的茅屋走出来，正午的日光猛地刺进眼睛，我疼得立刻闭上眼，半天睁不开。", quad:"SE" },
+        { id:6, text:"村民热情留我用饭，端上清蒸的溪鱼和野菜，我会忍不住往碟子里多撒一把山椒和野葱。", quad:"SS" },
+        { id:7, text:"宴席上摆满见都没见过的山珍，我筷子伸出去又缩回来，最后只夹了两口自己带来的干粮。", quad:"SA" },
+        { id:8, text:"都说桃花源的米饭自带清香，可我嚼了半天，觉得和寻常糙米没什么两样。", quad:"LR" },
+        { id:9, text:"热情的村童塞给我一块姜糖，那股辛辣冲进鼻腔，我含着就皱眉，悄悄吐在了荷叶里。", quad:"SE" },
+        { id:10, text:"邻居大嫂催我吃饭，嗓门稍大了些，我便觉得她是不是嫌我添麻烦了。", quad:"SE" },
+        { id:11, text:"村民邀我去山洞探险，我听说里面漆黑狭窄，便找个借口推辞了。", quad:"SA" },
+        { id:12, text:"晒谷场上响起踏歌声，我忍不住加入人群，跟着节奏用力跺脚、转圈。", quad:"SS" },
+        { id:13, text:"村里的少年比赛投壶、角力，我卷起袖子就报名，玩得满头大汗。", quad:"SS" },
+        { id:14, text:"夜幕降临，村民在河边点亮五色灯笼，那流光溢彩的倒影让我挪不开眼，越走越近。", quad:"SS" },
+        { id:15, text:"夜晚围炉听故事，我手里闲不住，不是剥着花生壳，就是用草茎编小玩意儿。", quad:"SS" },
+        { id:16, text:"我在垄上拔草，嘴里不自觉地吹着不成调的口哨，惊起一群麻雀。", quad:"SS" },
+        { id:17, text:"别人去溪边玩水嬉闹，我宁可坐在桃树下，安安静静地看风吹花瓣落。", quad:"SA" },
+        { id:18, text:"我行动缓慢，帮忙端菜时每一步都迈得极慢，生怕撞到门槛或泼洒了热汤。", quad:"SA" },
+        { id:19, text:"我在溪边蹲着看了会儿蝌蚪，猛地站起来时眼前一黑，差点栽进水里。", quad:"LR" },
+        { id:20, text:"挑着扁担的农夫从我身后擦过，扁担尖捅了一下我的腰，我立刻皱起眉，心里冒火。", quad:"SE" },
+        { id:21, text:"在村民杂乱的木箱里翻找一件旧物，东西越堆越多，我渐渐心烦意乱，想一把全推开。", quad:"SE" },
+        { id:22, text:"换上村民送的新麻衣，那粗糙的质感磨着我的皮肤，浑身像有小虫在爬。", quad:"SE" },
+        { id:23, text:"村长让我从竹筐里找出他的烟斗，可里面混着麻绳、木块、干果……我翻了半天才看到。", quad:"LR" },
+        { id:24, text:"鸡鸣三遍了，我还是眼皮沉重，要靠着门框缓好一阵子才能真正醒过来。", quad:"LR" },
+        { id:25, text:"跟着老农学编竹篮，他翻飞几下就成了底，我却捏着竹篾比划半天还没开头。", quad:"LR" },
+        { id:26, text:"村口大树下总聚着聊天的男女，我开始想绕远路走，不想卷入那热闹里。", quad:"SA" },
+        { id:27, text:"村民说山顶有棵千年桃树可祈福，我仰头望了望陡峭的石阶，心里发慌，决定是时候离开了。", quad:"SA" },
+        { id:28, text:"田埂尽头有一丛野玫瑰开得正好，我虽已踏上归途，仍忍不住跑过去猛吸一口，带着花香记忆离开。", quad:"SS" }
+    ];
+
+    const norms = {
+        "11-17": { LR:[7,8,9,12,13,19,19,24,24,35], SS:[7,13,13,19,20,27,28,30,31,35], SE:[7,9,9,12,12,19,19,22,23,35], SA:[7,8,9,12,12,19,19,22,23,35] },
+        "18-64": { LR:[7,8,9,11,11,16,17,21,21,35], SS:[7,16,17,20,20,26,27,29,29,35], SE:[7,8,9,12,12,19,20,22,23,35], SA:[7,9,9,12,13,19,20,23,23,35] },
+        "65+":   { LR:[7,9,9,12,13,19,19,24,24,35], SS:[7,13,14,18,19,24,25,29,30,35], SE:[7,8,9,12,12,19,20,22,23,35], SA:[7,8,9,12,12,20,20,23,23,35] }
+    };
+
+    const quadNames = { LR:"大智若愚者", SS:"冒险野心家", SE:"吟游诗人", SA:"达摩流浪者" };
+    const quadFullNames = { LR:"感觉迟钝", SS:"感觉寻求", SE:"感觉敏感", SA:"感觉回避" };
+    const classNames = ["远低于多数人","低于多数人","与多数人相似","高于多数人","远高于多数人"];
+    const options = ["从不如此","很少如此","偶尔如此","经常如此","总是如此"];
+
+    const identityDesc = {
+        LR: "外界纷扰不入耳，人间至味是清欢。众人皆醒你独醉，混沌中浮现本心的答案。",
+        SS: "银河艳星，单人匹马，胜过漫天烟花。如能获得，芭铎亲一下，何妨铁塔跨倒。",
+        SE: "高敏感是命运馈赠的礼物，也是你的账单。世界纤毫毕现，大脑显示过载。一根蜡烛两头烧，美与痛都加倍。",
+        SA: "面壁参禅，喧嚣结界，远离气味、人群与未知。你自愿走向小径分叉的花园。"
+    };
+
+    let radarChart = null;
+
+    function renderQuestions() {
+        const container = document.getElementById('questionsContainer');
+        let html = '';
+        questions.forEach(q => {
+            html += `<div class="question-item"><div class="q-text">${q.id}. ${q.text}</div><div class="options">`;
+            for(let i=0;i<5;i++) {
+                html += `<label class="option-label"><input type="radio" name="q${q.id}" value="${i+1}">${options[i]}</label>`;
+            }
+            html += `</div></div>`;
+        });
+        container.innerHTML = html;
+        document.querySelectorAll('input[type="radio"]').forEach(r => r.addEventListener('change', updateProgress));
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const answered = document.querySelectorAll('input:checked').length;
+        document.getElementById('progressFill').style.width = (answered/28*100)+'%';
+    }
+
+    function computeScores() {
+        const scores = { LR:0, SS:0, SE:0, SA:0 };
+        questions.forEach(q => {
+            const val = parseInt(document.querySelector(`input[name="q${q.id}"]:checked`)?.value || 0);
+            scores[q.quad] += val;
+        });
+        return scores;
+    }
+
+    function getClassification(quad, raw, age) {
+        const n = norms[age][quad];
+        if(raw < n[0]) return 0;
+        if(raw > n[9]) return 4;
+        for(let i=0;i<5;i++) if(raw >= n[i*2] && raw <= n[i*2+1]) return i;
+        return 2;
+    }
+
+    function determineIdentity(scores) {
+        const order = ['SE','SA','SS','LR'];
+        let maxQuad = 'LR';
+        let maxVal = -1;
+        for(let q of ['LR','SS','SE','SA']) {
+            if(scores[q] > maxVal) { maxVal = scores[q]; maxQuad = q; }
+        }
+        if(maxVal === -1) return 'LR';
+        const ties = ['LR','SS','SE','SA'].filter(q => scores[q] === maxVal);
+        if(ties.length === 1) return ties[0];
+        for(let q of order) if(ties.includes(q)) return q;
+        return ties[0];
+    }
+
+    function showResults() {
+        const age = document.getElementById('ageGroupSelect').value;
+        const scores = computeScores();
+        if(document.querySelectorAll('input:checked').length < 28) {
+            alert('请完成所有28道题目');
+            return;
+        }
+        const panel = document.getElementById('resultPanel');
+        panel.style.display = 'block';
+        const quads = ['LR','SS','SE','SA'];
+        const classIdx = quads.map(q => getClassification(q, scores[q], age));
+        const dominant = determineIdentity(scores);
+
+        let html = `<h2 style="color:#2b2b2b; margin-bottom:16px; font-weight:350;">📋 你的感官地图</h2><div class="quadrant-grid">`;
+        quads.forEach((q,i) => {
+            html += `<div class="quadrant-card"><div class="quadrant-name">${quadFullNames[q]} · ${quadNames[q]}</div>`;
+            html += `<div class="score-badge">${scores[q]}</div><div class="classification">${classNames[classIdx[i]]}</div></div>`;
+        });
+        html += `</div><div class="radar-container"><canvas id="radarChart"></canvas></div>`;
+
+        html += `<div class="identity-card">`;
+        html += `<div class="identity-hint">🌸 请参考该结果查看你的桃花源身份卡</div>`;
+        html += `<div class="identity-title">${quadNames[dominant]}</div>`;
+        html += `<div class="identity-desc">${identityDesc[dominant]}</div>`;
+        html += `</div>`;
+
+        panel.innerHTML = html;
+
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        if(radarChart) radarChart.destroy();
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: quads.map(q => quadNames[q]),
+                datasets: [{
+                    data: quads.map(q => scores[q]),
+                    backgroundColor: 'rgba(188, 154, 142, 0.2)',
+                    borderColor: '#bc9a8e',
+                    pointBackgroundColor: '#2b2b2b',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: { r: { min: 7, max: 35, ticks: { stepSize: 7 } } },
+                plugins: {
+                    legend: { display: false },   // 删除图例
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.raw} 分` } }
+                }
+            }
+        });
+    }
+
+    function resetForm() {
+        document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+        document.getElementById('resultPanel').style.display = 'none';
+        updateProgress();
+    }
+
+    window.onload = () => {
+        renderQuestions();
+        document.getElementById('submitBtn').addEventListener('click', showResults);
+        document.getElementById('resetBtn').addEventListener('click', resetForm);
+        document.getElementById('ageGroupSelect').addEventListener('click', () => {
+            if(document.getElementById('resultPanel').style.display !== 'none') showResults();
+        });
+    };
+})();
+</script>
+</body>
+</html>
